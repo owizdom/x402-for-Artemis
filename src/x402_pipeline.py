@@ -3,40 +3,6 @@
 X402 Pipeline - Dune Analytics Data Pipeline
 Fetches query results from Dune Analytics, stores them locally in SQLite,
 and provides simple access functions with CLI interface.
-
-Usage:
-    # Set API key as environment variable
-    export DUNE_API_KEY="your_api_key_here"
-    
-    # Fetch a single query
-    python x402_pipeline.py fetch "num transactions"
-    
-    # Fetch all queries
-    python x402_pipeline.py fetch-all
-    
-    # Get query results with pagination
-    python x402_pipeline.py get "num transactions" --limit 10 --offset 0
-    
-    # Get last N results
-    python x402_pipeline.py tail "num transactions" -n 5
-    
-    # List all available queries
-    python x402_pipeline.py list
-
-Programmatic Usage:
-    from x402_pipeline import DuneDataPipeline
-    
-    # Initialize pipeline
-    pipeline = DuneDataPipeline(api_key="your_key")
-    
-    # Fetch a query
-    result = pipeline.fetch_query("num transactions")
-    
-    # Get query data
-    data = pipeline.get_query("num transactions", limit=10)
-    
-    # Get last N rows
-    tail_data = pipeline.tail("num transactions", n=5)
 """
 
 import os
