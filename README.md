@@ -1,52 +1,182 @@
 # X402 Pipeline for Artemis
 
-Complete x402 ETL pipeline for fetching query results, transforming them with dbt, and exporting them into Artemis Analytics-ready formats.
+Complete x402 ETL pipeline for fetching query results from Dune Analytics, transforming them with dbt, and exporting them into Artemis Analytics-ready formats.
 
-## Quick Start
+## Overview
 
-### Option 1: Automated Setup (Recommended)
+This pipeline:
+- Fetches data from 9 Dune Analytics queries
+- Stores data in a local SQLite database
+- Transforms data using dbt (data build tool)
+- Exports data in Parquet and CSV formats for Artemis Analytics
+
+## Prerequisites
+
+Before you begin, ensure you have:
+- **Python 3.8+** installed
+- **Dune Analytics API Key** (get it from [Dune Analytics](https://dune.com))
+- **Git** (for cloning the repository)
+
+## Step-by-Step Setup
+
+### Step 1: Clone the Repository
 
 ```bash
-# Run setup script
-bash scripts/setup.sh
-
-# Activate virtual environment
-source venv/bin/activate
-
-# Set API key
-export DUNE_API_KEY="your_dune_api_key"
-
-# Test
-python pipeline/x402_pipeline.py list
+git clone https://github.com/owizdom/x402-for-Artemis.git
+cd x402-for-Artemis
 ```
 
-### Option 2: Manual Setup
+### Step 2: Create Virtual Environment
+
+Create an isolated Python environment:
 
 ```bash
-# Create virtual environment
 python3 -m venv venv
-source venv/bin/activate
-
-# Install dependencies
-pip install -r requirements.txt
-
-# Set API key
-export DUNE_API_KEY="your_dune_api_key"
 ```
 
-### Option 3: Docker
+### Step 3: Activate Virtual Environment
+
+**On macOS/Linux:**
+```bash
+source venv/bin/activate
+```
+
+**On Windows:**
+```bash
+venv\Scripts\activate
+```
+
+You should see `(venv)` in your terminal prompt, indicating the virtual environment is active.
+
+### Step 4: Install Dependencies
+
+Install all required Python packages:
 
 ```bash
-# Copy environment file
-cp .env.example .env
-# Edit .env and add your DUNE_API_KEY
+pip install --upgrade pip
+pip install -r requirements.txt
+```
 
-# Build and start
-make build
-make up
+This will install:
+- `dune-client` - Dune Analytics API client
+- `pandas` - Data manipulation
+- `pyarrow` - Parquet file support
+- `dbt-core` - Data transformation tool
+- `dbt-sqlite` - SQLite adapter for dbt
 
-# View logs
-make logs
+### Step 5: Set Up Environment Variables
+
+Create a `.env` file in the project root:
+
+```bash
+touch .env
+```
+
+Add your Dune API key to the `.env` file:
+
+```bash
+echo "DUNE_API_KEY=your_dune_api_key_here" > .env
+```
+
+**Or manually edit the `.env` file:**
+```
+DUNE_API_KEY=your_dune_api_key_here
+```
+
+**Note:** The `.env` file is already in `.gitignore` and won't be committed to the repository.
+
+### Step 6: Verify Installation
+
+Test that everything is set up correctly:
+
+```bash
+# Make sure venv is activated
+source venv/bin/activate
+
+# Load environment variables
+export $(cat .env | xargs)
+
+# Test the pipeline
+python src/x402_pipeline.py list
+```
+
+You should see a list of available queries. If you see an error about the API key, double-check your `.env` file.
+
+## Usage
+
+### Basic Commands
+
+**Always activate the virtual environment first:**
+```bash
+source venv/bin/activate
+export $(cat .env | xargs)
+```
+
+#### List Available Queries
+
+```bash
+python src/x402_pipeline.py list
+```
+
+This shows all 9 available queries with their IDs and last fetch status.
+
+#### Fetch a Single Query
+
+```bash
+python src/x402_pipeline.py fetch "num transactions"
+```
+
+Replace `"num transactions"` with any query name from the list.
+
+#### Fetch All Queries
+
+```bash
+python src/x402_pipeline.py fetch-all
+```
+
+This fetches all 9 queries sequentially. It may take a few minutes.
+
+#### View Query Results
+
+Get the first 10 results from a query:
+```bash
+python src/x402_pipeline.py get "num transactions" --limit 10
+```
+
+Get the last 5 results:
+```bash
+python src/x402_pipeline.py tail "num transactions" -n 5
+```
+
+#### Export Data for Artemis
+
+Export all fetched data in Parquet and CSV formats:
+```bash
+python src/x402_pipeline.py export
+```
+
+Files will be saved to `data/exports/` with timestamps.
+
+### Running dbt Transformations
+
+After fetching data, you can run dbt transformations:
+
+```bash
+# Activate venv and load env vars
+source venv/bin/activate
+export $(cat .env | xargs)
+
+# Run dbt models
+dbt run --profiles-dir dbt --project-dir .
+```
+
+This will execute all SQL models in `dbt/models/` to transform your data.
+
+### Running Tests
+
+Test your dbt models:
+```bash
+dbt test --profiles-dir dbt --project-dir .
 ```
 
 ## Project Structure
@@ -76,267 +206,137 @@ make logs
 │   └── logs/             # Log files
 ├── docs/                  # Documentation
 ├── requirements.txt      # Python dependencies
-├── Makefile              # Convenience commands
+├── .env                  # Environment variables (not in git)
 └── README.md             # This file
 ```
 
-## Features
+## Available Queries
 
-- **Dune Analytics Integration** - Fetch data from 9 Dune queries
-- **SQLite Storage** - Local database with timestamps
-- **dbt Transformations** - SQL-based data modeling
-- **Artemis Export** - Parquet and CSV formats
-- **Docker Support** - Containerized deployment
-- **Automated Scheduler** - Daily updates
-- **Virtual Environment** - Isolated dependencies
+The pipeline fetches data from these 9 Dune Analytics queries:
 
-## Usage
+1. **num transactions** (Query ID: 6084845)
+2. **num transactions percent** (Query ID: 6084845)
+3. **x402 volume evm** (Query ID: 6094619)
+4. **volume by token evm** (Query ID: 6094619)
+5. **facilitators by chain** (Query ID: 6084891)
+6. **facilitators by chain percent** (Query ID: 6084891)
+7. **facilitators solana** (Query ID: 6084802)
+8. **x402 volume solana** (Query ID: 6094785)
+9. **volume by token solana** (Query ID: 6094785)
 
-### Basic Commands
+## Data Flow
 
+```
+Dune Analytics API
+    ↓
+X402 Pipeline (Python)
+    ↓
+SQLite Database (data/databases/x402_data.db)
+    ↓
+dbt Transformations (SQL)
+    ↓
+Artemis Export (Parquet/CSV in data/exports/)
+```
+
+## Automated Scheduling
+
+### Using the Scheduler Script
+
+Run the pipeline once:
 ```bash
-# Activate virtual environment first
 source venv/bin/activate
-
-# List available queries
-python src/x402_pipeline.py list
-
-# Fetch all queries
-python src/x402_pipeline.py fetch-all
-
-# Export for Artemis
-python src/x402_pipeline.py export
-
-# Run dbt transformations
-dbt run --profiles-dir dbt
-```
-
-### Using Makefile
-
-```bash
-# Setup (creates venv and installs deps)
-make setup
-
-# Install dependencies
-make install
-
-# Test locally
-make test-local
-
-# Fetch data
-make fetch-all
-
-# Export data
-make export
-
-# Run dbt
-make dbt-local
-
-# Docker commands
-make build
-make up
-make logs
-```
-
-### Docker Commands
-
-```bash
-# Build images
-docker-compose build
-
-# Start services
-docker-compose up -d
-
-# View logs
-docker-compose logs -f
-
-# Run dbt
-make dbt-run
-
-# Stop services
-docker-compose down
-```
-
-## 🔄 Automated Updates
-
-### Using Scheduler
-
-```bash
-# Run once
+export $(cat .env | xargs)
 python src/scheduler.py run-once
-
-# Run as daemon (continuous)
-python src/scheduler.py daemon
-
-# With Docker
-docker-compose up -d
 ```
 
-### Using Cron
-
+Run as a background daemon:
 ```bash
-# Add to crontab
-0 2 * * * cd /path/to/x402scan-artemis-sync && \
-  source venv/bin/activate && \
-  export DUNE_API_KEY='your_key' && \
-  python src/scheduler.py run-once >> data/logs/cron.log 2>&1
+source venv/bin/activate
+export $(cat .env | xargs)
+python src/scheduler.py daemon
+```
+
+### Using Cron (Linux/macOS)
+
+Add to your crontab to run daily at 2 AM:
+```bash
+crontab -e
+```
+
+Add this line (adjust the path):
+```bash
+0 2 * * * cd /path/to/x402-for-Artemis && source venv/bin/activate && export $(cat .env | xargs) && python src/scheduler.py run-once >> data/logs/cron.log 2>&1
+```
+
+
+### Database Issues
+
+Clear the database if needed:
+```bash
+sqlite3 data/databases/x402_data.db "DELETE FROM query_results;"
+```
+
+### dbt Issues
+
+Check dbt installation:
+```bash
+dbt --version
+```
+
+Test database connection:
+```bash
+dbt debug --profiles-dir dbt --project-dir .
+```
+
+Run with verbose output:
+```bash
+dbt run --profiles-dir dbt --project-dir . --debug
+```
+
+### Import Errors
+
+If you see "dune-client library not installed":
+```bash
+source venv/bin/activate
+pip install -r requirements.txt
+```
+
+## Monitoring
+
+### Check Database
+
+View how many records are stored:
+```bash
+sqlite3 data/databases/x402_data.db "SELECT COUNT(*) FROM query_results;"
+```
+
+### View Logs
+
+Check scheduler logs:
+```bash
+tail -f data/logs/scheduler_*.log
+```
+
+### Check Exports
+
+List exported files:
+```bash
+ls -lh data/exports/
 ```
 
 ## Documentation
+
+Additional documentation is available in the `docs/` directory:
 
 - **[Artemis Integration Guide](docs/ARTEMIS_INTEGRATION.md)** - Complete integration guide
 - **[dbt & Docker Setup](docs/DBT_DOCKER_SETUP.md)** - dbt and Docker configuration
 - **[Scheduler Setup](docs/SCHEDULER_SETUP.md)** - Automated scheduling guide
 - **[Quick Start](docs/QUICK_START_ARTEMIS.md)** - Quick reference
 
-## Data Flow
-
-```
-Dune Analytics
-    ↓
-X402 Pipeline (Python)
-    ↓
-SQLite Database
-    ↓
-dbt Transformations (SQL)
-    ↓
-Artemis Export (Parquet/CSV)
-```
-
-## Dependencies
-
-- **dune-client** - Dune Analytics API client
-- **pandas** - Data manipulation
-- **pyarrow** - Parquet file support
-- **dbt-core** - Data transformation
-- **dbt-sqlite** - SQLite adapter for dbt
-
 ## Environment Variables
 
-Create `.env` file or export:
+The following environment variables can be set (in `.env` file or exported):
 
-```bash
-export DUNE_API_KEY="your_dune_api_key"
-export DB_PATH="x402_data.db"
-export OUTPUT_DIR="extract"
-```
-
-## Docker
-
-The project includes full Docker support:
-
-- **Dockerfile** - Containerizes the pipeline
-- **docker-compose.yml** - Orchestrates services
-- **Health checks** - Monitors container health
-- **Volume mounts** - Persists data and logs
-
-## Testing
-
-```bash
-# Test pipeline
-source venv/bin/activate
-python src/x402_pipeline.py list
-
-# Test dbt
-dbt run --profiles-dir dbt
-dbt test --profiles-dir dbt
-
-# Test Docker
-docker-compose up --build
-```
-
-## Monitoring
-
-```bash
-# View logs
-tail -f logs/scheduler_*.log
-
-# Check database
-sqlite3 x402_data.db "SELECT COUNT(*) FROM query_results;"
-
-# Check exports
-ls -lh extract/
-```
-
-## Development
-
-```bash
-# Activate venv
-source venv/bin/activate
-
-# Install dev dependencies (if any)
-pip install -r requirements.txt
-
-# Run tests
-python src/x402_pipeline.py list
-
-# Run dbt
-dbt run --profiles-dir dbt
-```
-
-## Notes
-
-- Virtual environment is required for local development
-- Docker includes all dependencies
-- dbt models are in `dbt/models/`
-- Exports go to `data/exports/` directory
-- Logs are in `data/logs/` directory
-
-## Troubleshooting
-
-### Virtual Environment Issues
-
-```bash
-# Recreate venv
-rm -rf venv
-python3 -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
-```
-
-### dbt Issues
-
-```bash
-# Check dbt installation
-dbt --version
-
-# Test connection
-dbt debug --profiles-dir dbt
-
-# Run with debug
-dbt run --profiles-dir dbt --debug
-```
-
-### Docker Issues
-
-```bash
-# Rebuild from scratch
-docker-compose down -v
-docker-compose build --no-cache
-docker-compose up -d
-```
-
-## License
-
-See LICENSE file for details.
-
-## Contributing
-
-1. Activate virtual environment
-2. Install dependencies
-3. Make changes
-4. Test locally
-5. Submit PR
-
-## Support
-
-For issues or questions:
-1. Check documentation in `docs/`
-2. Review logs in `logs/`
-3. Test with `python src/x402_pipeline.py list`
-
----
-
-**Ready to use!**
-
-Start with `bash scripts/setup.sh` or `make setup` to get started.
+- `DUNE_API_KEY` - **Required** - Your Dune Analytics API key
+- `DB_PATH` - Optional - Path to SQLite database (default: `data/databases/x402_data.db`)
+- `OUTPUT_DIR` - Optional - Export directory (default: `data/exports`)
