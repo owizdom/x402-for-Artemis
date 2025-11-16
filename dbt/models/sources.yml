@@ -1,0 +1,26 @@
+version: 2
+
+sources:
+  - name: raw
+    description: "Raw data from X402 Pipeline SQLite database"
+    database: main
+    schema: main
+    tables:
+      - name: query_results
+        description: "Raw query results from Dune Analytics"
+        columns:
+          - name: id
+            description: "Primary key"
+          - name: logical_name
+            description: "Logical name of the query"
+          - name: query_id
+            description: "Dune Analytics query ID"
+          - name: data
+            description: "JSON string containing query results"
+          - name: timestamp
+            description: "Timestamp when data was fetched"
+          - name: row_count
+            description: "Number of rows in the result"
+          - name: created_at
+            description: "Record creation timestamp"
+

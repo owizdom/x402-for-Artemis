@@ -1,0 +1,29 @@
+name: 'x402_pipeline'
+version: '1.0.0'
+config-version: 2
+
+profile: 'x402_pipeline'
+
+model-paths: ["dbt/models"]
+analysis-paths: ["dbt/analyses"]
+test-paths: ["dbt/tests"]
+seed-paths: ["dbt/seeds"]
+macro-paths: ["dbt/macros"]
+snapshot-paths: ["dbt/snapshots"]
+
+target-path: "dbt/target"
+clean-targets:
+  - "dbt/target"
+  - "dbt/dbt_packages"
+
+models:
+  x402_pipeline:
+    +materialized: table
+    staging:
+      +materialized: view
+    marts:
+      +materialized: table
+
+vars:
+  project_start_date: '2024-01-01'
+

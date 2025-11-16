@@ -1,0 +1,6 @@
+# X402 Pipeline Dependencies
+dune-client>=1.9.0
+pandas>=2.0.0
+pyarrow>=14.0.0
+dbt-core>=1.7.0
+dbt-sqlite>=1.7.0

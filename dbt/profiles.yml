@@ -1,0 +1,14 @@
+x402_pipeline:
+  target: dev
+  outputs:
+    dev:
+      type: sqlite
+      threads: 1
+      database: ../data/databases/x402_data.db
+      schema: main
+    prod:
+      type: sqlite
+      threads: 1
+      database: ../data/databases/x402_data.db
+      schema: main
+

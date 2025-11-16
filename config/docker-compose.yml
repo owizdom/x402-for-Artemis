@@ -1,0 +1,46 @@
+version: '3.8'
+
+services:
+  x402-pipeline:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: x402-pipeline
+    environment:
+      - DUNE_API_KEY=${DUNE_API_KEY}
+      - TZ=UTC
+    volumes:
+      # Persist database
+      - ./data/databases/x402_data.db:/app/data/databases/x402_data.db
+      # Persist exports
+      - ./data/exports:/app/data/exports
+      # Persist logs
+      - ./data/logs:/app/data/logs
+      # Persist dbt artifacts
+      - ./dbt/target:/app/dbt/target
+    restart: unless-stopped
+    command: ["python", "src/scheduler.py", "daemon", "--interval", "24"]
+    healthcheck:
+      test: ["CMD", "python", "-c", "import sqlite3; conn = sqlite3.connect('data/databases/x402_data.db'); conn.close()"]
+      interval: 1h
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  # Optional: dbt service for running transformations
+  dbt:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    container_name: x402-dbt
+    environment:
+      - DUNE_API_KEY=${DUNE_API_KEY}
+    volumes:
+      - ./data/databases/x402_data.db:/app/data/databases/x402_data.db
+      - ./dbt:/app/dbt
+      - ./dbt/target:/app/dbt/target
+    command: ["dbt", "run", "--profiles-dir", "dbt"]
+    profiles_dir: ./dbt
+    depends_on:
+      - x402-pipeline
+
